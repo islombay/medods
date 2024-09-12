@@ -8,11 +8,14 @@ definitions:
     type: object
   model.Register:
     properties:
+      email:
+        type: string
       first_name:
         type: string
       last_name:
         type: string
     required:
+    - email
     - first_name
     - last_name
     type: object
@@ -51,7 +54,7 @@ paths:
       parameters:
       - description: Request
         in: body
-        name: product
+        name: request
         required: true
         schema:
           $ref: '#/definitions/model.LoginRequest'
@@ -65,6 +68,33 @@ paths:
           schema:
             $ref: '#/definitions/status.Status'
       summary: Login
+      tags:
+      - auth
+  /api/auth/refresh:
+    post:
+      description: Refresh tokens (access and refresh token)
+      operationId: refresh
+      parameters:
+      - description: Access token
+        in: header
+        name: access_token
+        required: true
+        type: string
+      - description: Refresh token
+        in: header
+        name: refresh_token
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Refreshed Tokens
+          schema:
+            $ref: '#/definitions/model.TokenPair'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/status.Status'
+      summary: Refresh tokens
       tags:
       - auth
   /api/auth/register:

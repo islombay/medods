@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"golang.org/x/crypto/bcrypt"
+	"medods/internal/error_list"
 	"medods/internal/model"
 	"medods/pkg/helper"
 	"medods/pkg/jwt"
@@ -32,15 +34,9 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 	srv.log.Debug("user exists in database", logs.String("user_id", user.ID))
 
 	// TODO: generate access and refresh tokens
-	accessToken, err := jwt.Generate(user.ID, m.IP)
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(m.UserId, m.IP)
 	if err != nil {
-		srv.log.Error("Could not generate access token", logs.Error(err))
-		return nil, err
-	}
-
-	refreshToken, err := jwt.GenerateRefreshToken()
-	if err != nil {
-		srv.log.Error("Could not generate refresh token", logs.Error(err))
+		srv.log.Error("could not generate pair tokens", logs.Error(err))
 		return nil, err
 	}
 
@@ -66,18 +62,69 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 }
 
 func (srv *Auth) Register(ctx context.Context, m model.Register) (*model.TokenPair, error) {
-	// TODO: add user to database
+	// add user to database
 	user := model.User{
 		FirstName: &m.FirstName,
 		LastName:  &m.LastName,
+		Email:     &m.Email,
 	}
 	if err := srv.storage.User().Create(ctx, &user); err != nil {
 		return nil, err
 	}
 
-	// TODO: return token (call previous function)
+	// return token (call previous function)
 	return srv.Login(ctx, model.LoginRequest{
 		UserId: user.ID,
 		IP:     m.IP,
 	})
+}
+
+func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.TokenPair, error) {
+	// parse access token
+	tokenClaims, err := jwt.ParseToken(m.AccessToken)
+	if err != nil {
+		srv.log.Debug("could not parse jwt token", logs.Error(err))
+		return nil, error_list.Unauthorized
+	}
+
+	// check user exists in db
+	user, err := srv.storage.Auth().GetByID(ctx, tokenClaims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// check refresh token hash with db
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.HashedRefreshToken), []byte(m.RefreshToken)); err != nil {
+		srv.log.Debug("trying to refresh token with invalid refresh token")
+		return nil, error_list.Unauthorized
+	}
+
+	// TODO: check current IP address with IP address from jwt token if incorrect send email warning
+	if m.IP != tokenClaims.IP {
+		// TODO: send email warning
+	}
+
+	// generate token pairs
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(user.ID, m.IP)
+	if err != nil {
+		srv.log.Error("could not generate pair tokens", logs.Error(err))
+		return nil, err
+	}
+
+	// save new hash to user
+	hashedRefreshToken, err := helper.HashPassword(refreshToken)
+	if err != nil {
+		srv.log.Error("could not hash refresh token", logs.Error(err))
+		return nil, err
+	}
+
+	user.HashedRefreshToken = &hashedRefreshToken
+	if err := srv.storage.Auth().UpdateHash(ctx, &user); err != nil {
+		return nil, err
+	}
+
+	return &model.TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

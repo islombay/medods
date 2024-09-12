@@ -46,3 +46,33 @@ func GenerateRefreshToken() (string, error) {
 
 	return refreshToken, nil
 }
+
+func ParseToken(tokenStr string) (*AccessTokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &AccessTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("TOKEN_SECRET_KEY")), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*AccessTokenClaims)
+	if !ok || !token.Valid {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
+func GeneratePairTokens(userID, ip string) (string, string, error) {
+	accessToken, err := Generate(userID, ip)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := GenerateRefreshToken()
+	if err != nil {
+		return "", "", err
+	}
+	return accessToken, refreshToken, nil
+}

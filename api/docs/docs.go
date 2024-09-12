@@ -26,7 +26,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Request",
-                        "name": "product",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -37,6 +37,46 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Tokens",
+                        "schema": {
+                            "$ref": "#/definitions/model.TokenPair"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/status.Status"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "description": "Refresh tokens (access and refresh token)",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh tokens",
+                "operationId": "refresh",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Access token",
+                        "name": "access_token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Refresh token",
+                        "name": "refresh_token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Refreshed Tokens",
                         "schema": {
                             "$ref": "#/definitions/model.TokenPair"
                         }
@@ -101,10 +141,14 @@ const docTemplate = `{
         "model.Register": {
             "type": "object",
             "required": [
+                "email",
                 "first_name",
                 "last_name"
             ],
             "properties": {
+                "email": {
+                    "type": "string"
+                },
                 "first_name": {
                     "type": "string"
                 },

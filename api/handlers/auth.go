@@ -16,7 +16,7 @@ import (
 // @summary Login
 // @description Login Get Access/ Refresh token
 // @tags auth
-// @param product body model.LoginRequest true "Request"
+// @param request body model.LoginRequest true "Request"
 // @success 200 {object} model.TokenPair "Tokens"
 // @failure 500 {object} status.Status "Internal server error"
 func (v *Handler) Login(c *gin.Context) {
@@ -52,8 +52,35 @@ func (v *Handler) Login(c *gin.Context) {
 	v.response(c, status.StatusOk.AddData(tokenPair))
 }
 
+// Refresh
+// @id refresh
+// @router /api/auth/refresh [post]
+// @summary Refresh tokens
+// @description Refresh tokens (access and refresh token)
+// @tags auth
+// @param access_token header string true "Access token"
+// @param refresh_token header string true "Refresh token"
+// @success 200 {object} model.TokenPair "Refreshed Tokens"
+// @failure 500 {object} status.Status "Internal server error"
 func (v *Handler) Refresh(c *gin.Context) {
+	var m model.RefreshRequest
+	if err := c.BindHeader(&m); err != nil {
+		v.response(c, status.StatusBadRequest)
+		return
+	}
 
+	m.IP = c.RemoteIP()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	tokenPair, err := v.service.Auth().Refresh(ctx, m)
+	if err != nil {
+		v.response(c, v.ParseError(err))
+		return
+	}
+
+	v.response(c, status.StatusOk.AddData(tokenPair))
 }
 
 // Register
@@ -74,9 +101,8 @@ func (v *Handler) Register(c *gin.Context) {
 
 	m.IP = helper.ParseIP(c)
 
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	//defer cancel()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 
 	tokenPair, err := v.service.Auth().Register(ctx, m)
 	if err != nil {

@@ -25,7 +25,7 @@ func NewAuthDB(db *pgxpool.Pool, log logs.LoggerInterface) *authDB {
 func (db *authDB) GetByID(ctx context.Context, id string) (model.User, error) {
 	q := `select
 				id, first_name, last_name, hash_token,
-				created_at, updated_at, deleted_at
+				created_at, updated_at, deleted_at, email
 			from users
 			where id = $1 and deleted_at is null;`
 
@@ -33,7 +33,7 @@ func (db *authDB) GetByID(ctx context.Context, id string) (model.User, error) {
 
 	if err := db.db.QueryRow(ctx, q, id).Scan(
 		&user.ID, &user.FirstName, &user.LastName, &user.HashedRefreshToken,
-		&user.CreatedAt, &user.UpdatedAt, &user.DeletedAt,
+		&user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Email,
 	); err != nil {
 		// TODO: handle error
 		// Not found

@@ -4,6 +4,7 @@ create table if not exists users (
     id uuid primary key default uuid_generate_v4(),
     first_name varchar(255),
     last_name varchar(255),
+    email varchar(255),
 
     hash_token varchar(255),
 

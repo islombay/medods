@@ -31,6 +31,10 @@ func (v *Handler) response(c *gin.Context, data status.Status) {
 func (v *Handler) ParseError(err error) status.Status {
 	if errors.Is(err, error_list.NotFound) {
 		return status.StatusNotFound
+	} else if errors.Is(err, error_list.Unauthorized) {
+		return status.StatusUnauthorized
+	} else if errors.Is(err, error_list.Forbidden) {
+		return status.StatusForbidden
 	}
 
 	return status.StatusInternal

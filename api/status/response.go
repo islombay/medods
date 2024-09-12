@@ -27,4 +27,8 @@ var (
 		Code:    http.StatusUnauthorized,
 		Message: "Unauthorized",
 	}
+	StatusForbidden = Status{
+		Code:    http.StatusForbidden,
+		Message: "Forbidden",
+	}
 )
