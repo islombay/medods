@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"medods/internal/error_list"
 	"medods/internal/model"
 	"medods/pkg/logs"
 	"medods/storage"
@@ -28,7 +31,6 @@ func (db *sessionDB) Create(ctx context.Context, session *model.Session) error {
 		&session.ID, &session.CreatedAt, &session.UpdatedAt,
 	); err != nil {
 		db.log.Error("could not create session", logs.Error(err))
-		// TODO: handle error
 		return err
 	}
 
@@ -63,11 +65,13 @@ func (db *sessionDB) GetByID(ctx context.Context, id string) (*model.Session, er
 		&session.ID, &session.Hash, &session.UserID, &session.IP,
 		&session.CreatedAt, &session.UpdatedAt, &session.DeletedAt,
 	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, error_list.NotFound
+		}
 		db.log.Error("could not get session by id",
 			logs.Error(err),
 			logs.String("session_id", id),
 		)
-		// TODO: handle errors
 		return nil, err
 	}
 

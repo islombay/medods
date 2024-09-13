@@ -45,7 +45,6 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 		IP:     &deviceInfo.IP,
 	}
 	if err := srv.storage.Session().Create(ctx, &session); err != nil {
-		// TODO: handle error
 		return nil, err
 	}
 
@@ -113,7 +112,7 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 		return nil, err
 	}
 
-	// TODO: get session by session_id
+	// get session by session_id
 	session, err := srv.storage.Session().GetByID(ctx, tokenClaims.SessionID)
 	if err != nil {
 		return nil, err

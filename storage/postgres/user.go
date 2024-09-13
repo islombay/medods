@@ -49,7 +49,6 @@ func (db *userDB) GetByID(ctx context.Context, id string) (*model.User, error) {
 		&user.ID, &user.FirstName, &user.LastName,
 		&user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Email,
 	); err != nil {
-		// TODO: handle error
 		// Not found
 		if errors.Is(err, pgx.ErrNoRows) {
 			return &user, error_list.NotFound
