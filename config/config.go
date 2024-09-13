@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Server ConfigServer
 	DB     ConfigDB
-	Redis  ConfigRedis
 	Mail   ConfigMail
 }
 
@@ -33,11 +32,6 @@ type ConfigServer struct {
 	URL  string
 }
 
-type ConfigRedis struct {
-	Host string
-	Port string
-}
-
 func Load() Config {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("no .env file found")
@@ -55,10 +49,6 @@ func Load() Config {
 			DBName:         os.Getenv("DB_NAME"),
 			SSLMode:        os.Getenv("DB_SSL_MODE"),
 			MigrationsPath: os.Getenv("DB_MIGRATIONS_PATH"),
-		},
-		Redis: ConfigRedis{
-			Host: os.Getenv("REDIS_HOST"),
-			Port: os.Getenv("REDIS_PORT"),
 		},
 		Mail: ConfigMail{
 			Host:   os.Getenv("MAIL_HOST"),
