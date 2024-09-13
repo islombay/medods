@@ -8,6 +8,7 @@ type LoginRequest struct {
 type TokenPair struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	UserID       string `json:"user_id,omitempty"`
 }
 
 type Register struct {

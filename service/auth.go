@@ -74,6 +74,7 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 	return &model.TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		UserID:       user.ID,
 	}, nil
 }
 
