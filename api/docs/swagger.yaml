@@ -26,6 +26,25 @@ definitions:
       refresh_token:
         type: string
     type: object
+  model.User:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      hashedRefreshToken:
+        type: string
+      id:
+        type: string
+      lastName:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   status.Status:
     properties:
       code:
@@ -120,6 +139,23 @@ paths:
       summary: Register new user
       tags:
       - auth
+  /api/me:
+    get:
+      operationId: getme
+      responses:
+        "200":
+          description: User
+          schema:
+            $ref: '#/definitions/model.User'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/status.Status'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Information about current user
+      tags:
+      - user
 securityDefinitions:
   ApiKeyAuth:
     in: header

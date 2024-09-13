@@ -22,3 +22,8 @@ type RefreshRequest struct {
 	RefreshToken string `form:"refresh_token" binding:"required" header:"refresh_token"`
 	IP           string `json:"-"`
 }
+
+type DeviceInfo struct {
+	IP        string `json:"ip"`
+	UserAgent string `json:"user_agent"`
+}

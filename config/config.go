@@ -10,6 +10,7 @@ type Config struct {
 	Server ConfigServer
 	DB     ConfigDB
 	Redis  ConfigRedis
+	Mail   ConfigMail
 }
 
 type ConfigDB struct {
@@ -18,6 +19,12 @@ type ConfigDB struct {
 	DBName         string
 	SSLMode        string
 	MigrationsPath string
+}
+
+type ConfigMail struct {
+	Host   string
+	Port   string
+	Sender string
 }
 
 type ConfigServer struct {
@@ -52,6 +59,11 @@ func Load() Config {
 		Redis: ConfigRedis{
 			Host: os.Getenv("REDIS_HOST"),
 			Port: os.Getenv("REDIS_PORT"),
+		},
+		Mail: ConfigMail{
+			Host:   os.Getenv("MAIL_HOST"),
+			Port:   os.Getenv("MAIL_PORT"),
+			Sender: os.Getenv("MAIL_SENDER"),
 		},
 	}
 

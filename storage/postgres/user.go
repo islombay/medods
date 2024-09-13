@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"medods/internal/error_list"
 	"medods/internal/model"
 	"medods/pkg/logs"
 )
@@ -31,4 +34,29 @@ func (db *userDB) Create(ctx context.Context, user *model.User) error {
 	}
 
 	return nil
+}
+
+func (db *userDB) GetByID(ctx context.Context, id string) (*model.User, error) {
+	q := `select
+				id, first_name, last_name, hash_token,
+				created_at, updated_at, deleted_at, email
+			from users
+			where id = $1 and deleted_at is null;`
+
+	var user model.User
+
+	if err := db.db.QueryRow(ctx, q, id).Scan(
+		&user.ID, &user.FirstName, &user.LastName, &user.HashedRefreshToken,
+		&user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Email,
+	); err != nil {
+		// TODO: handle error
+		// Not found
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &user, error_list.NotFound
+		}
+		db.log.Error("could not find the user by id", logs.Error(err))
+		return &user, err
+	}
+
+	return &user, nil
 }

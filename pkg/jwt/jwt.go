@@ -3,7 +3,9 @@ package jwt
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
+	"medods/internal/error_list"
 	"os"
 	"strconv"
 	"time"
@@ -53,11 +55,16 @@ func ParseToken(tokenStr string) (*AccessTokenClaims, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, err
+		}
 	}
 
 	claims, ok := token.Claims.(*AccessTokenClaims)
 	if !ok || !token.Valid {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return claims, error_list.TokenExpired
+		}
 		return nil, err
 	}
 

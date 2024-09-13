@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"medods/api/status"
 	"medods/internal/error_list"
 	"medods/pkg/logs"
 	"medods/service"
+	"time"
 )
 
 type Handler struct {
@@ -38,4 +40,31 @@ func (v *Handler) ParseError(err error) status.Status {
 	}
 
 	return status.StatusInternal
+}
+
+func GetValue[T any](c *gin.Context, key string) (T, bool) {
+	var zeroValue T
+	val, ok := c.Get(key)
+	if !ok {
+		return zeroValue, false
+	}
+
+	assertedValue, ok := val.(T)
+	if !ok {
+		return zeroValue, false
+	}
+
+	return assertedValue, true
+}
+
+func (v *Handler) NewContext(c *gin.Context, sec int, keys ...string) (context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	for _, key := range keys {
+		if val, ok := c.Get(key); ok {
+			ctx = context.WithValue(ctx, key, val)
+		}
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(sec))
+
+	return ctx, cancel
 }

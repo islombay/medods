@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"golang.org/x/crypto/bcrypt"
 	"medods/internal/error_list"
+	"medods/internal/mail"
 	"medods/internal/model"
 	"medods/pkg/helper"
 	"medods/pkg/jwt"
@@ -14,18 +16,20 @@ import (
 type Auth struct {
 	storage storage.StorageInterface
 	log     logs.LoggerInterface
+	mail    mail.MailServiceI
 }
 
-func NewAuth(storage storage.StorageInterface, log logs.LoggerInterface) *Auth {
+func NewAuth(storage storage.StorageInterface, log logs.LoggerInterface, mail mail.MailServiceI) *Auth {
 	return &Auth{
 		storage: storage,
 		log:     log,
+		mail:    mail,
 	}
 }
 
 func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenPair, error) {
 	// check if user exists in database, else return unauthorized error
-	user, err := srv.storage.Auth().GetByID(ctx, m.UserId)
+	user, err := srv.storage.User().GetByID(ctx, m.UserId)
 	if err != nil {
 		// Errors from storage layer will be logged by storage layer
 		return nil, err
@@ -33,8 +37,10 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 
 	srv.log.Debug("user exists in database", logs.String("user_id", user.ID))
 
+	deviceInfo := ctx.Value("device_info").(model.DeviceInfo)
+
 	// TODO: generate access and refresh tokens
-	accessToken, refreshToken, err := jwt.GeneratePairTokens(m.UserId, m.IP)
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(m.UserId, deviceInfo.IP)
 	if err != nil {
 		srv.log.Error("could not generate pair tokens", logs.Error(err))
 		return nil, err
@@ -49,7 +55,7 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 	user.HashedRefreshToken = &hashedRefreshToken
 
 	// TODO: save hashed token to db
-	if err := srv.storage.Auth().UpdateHash(ctx, &user); err != nil {
+	if err := srv.storage.Auth().UpdateHash(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -72,10 +78,12 @@ func (srv *Auth) Register(ctx context.Context, m model.Register) (*model.TokenPa
 		return nil, err
 	}
 
+	deviceInfo := ctx.Value("device_info").(model.DeviceInfo)
+
 	// return token (call previous function)
 	return srv.Login(ctx, model.LoginRequest{
 		UserId: user.ID,
-		IP:     m.IP,
+		IP:     deviceInfo.IP,
 	})
 }
 
@@ -83,12 +91,13 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 	// parse access token
 	tokenClaims, err := jwt.ParseToken(m.AccessToken)
 	if err != nil {
-		srv.log.Debug("could not parse jwt token", logs.Error(err))
-		return nil, error_list.Unauthorized
+		if !errors.Is(err, error_list.TokenExpired) {
+			srv.log.Debug("could not parse jwt token", logs.Error(err))
+			return nil, error_list.Unauthorized
+		}
 	}
-
 	// check user exists in db
-	user, err := srv.storage.Auth().GetByID(ctx, tokenClaims.UserID)
+	user, err := srv.storage.User().GetByID(ctx, tokenClaims.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,13 +108,28 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 		return nil, error_list.Unauthorized
 	}
 
-	// TODO: check current IP address with IP address from jwt token if incorrect send email warning
-	if m.IP != tokenClaims.IP {
-		// TODO: send email warning
+	deviceInfo := ctx.Value("device_info").(model.DeviceInfo)
+
+	if deviceInfo.IP != tokenClaims.IP {
+		// send email warning
+		srv.log.Debug("refresh token requested from another IP",
+			logs.String("got IP", deviceInfo.IP),
+			logs.String("expected IP", tokenClaims.IP),
+		)
+		if user.Email != nil {
+			go func() {
+				if err := srv.mail.WarnIPAddressChange(*user.Email, deviceInfo); err != nil {
+					srv.log.Error("could not send email notification about IP address change",
+						logs.Error(err),
+						logs.String("to", *user.Email),
+					)
+				}
+			}()
+		}
 	}
 
 	// generate token pairs
-	accessToken, refreshToken, err := jwt.GeneratePairTokens(user.ID, m.IP)
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(user.ID, deviceInfo.IP)
 	if err != nil {
 		srv.log.Error("could not generate pair tokens", logs.Error(err))
 		return nil, err
@@ -119,7 +143,7 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 	}
 
 	user.HashedRefreshToken = &hashedRefreshToken
-	if err := srv.storage.Auth().UpdateHash(ctx, &user); err != nil {
+	if err := srv.storage.Auth().UpdateHash(ctx, user); err != nil {
 		return nil, err
 	}
 

@@ -6,7 +6,6 @@ import (
 	"medods/api/status"
 	"medods/internal/model"
 	"medods/pkg/helper"
-	"medods/pkg/logs"
 	"time"
 )
 
@@ -31,14 +30,6 @@ func (v *Handler) Login(c *gin.Context) {
 		v.response(c, status.StatusBadRequest.AddError("uuid", "invalid"))
 		return
 	}
-
-	// TODO: handle cases when the IP is inside header (ex. Nginx)
-	m.IP = c.RemoteIP()
-
-	v.log.Debug("IP",
-		logs.String("c.RemoteIP()", c.RemoteIP()),
-		logs.String("c.ClientIP()", c.ClientIP()),
-		logs.String("c.Request.RemoteAddr", c.Request.RemoteAddr))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -69,9 +60,7 @@ func (v *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	m.IP = c.RemoteIP()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := v.NewContext(c, 5, "device_info")
 	defer cancel()
 
 	tokenPair, err := v.service.Auth().Refresh(ctx, m)
@@ -99,9 +88,7 @@ func (v *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	m.IP = helper.ParseIP(c)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := v.NewContext(c, 5, "device_info")
 	defer cancel()
 
 	tokenPair, err := v.service.Auth().Register(ctx, m)
