@@ -9,12 +9,8 @@ type StorageInterface interface {
 	Close()
 	Migrate()
 
-	Auth() AuthI
 	User() UserI
 	Session() SessionI
-}
-
-type AuthI interface {
 }
 
 type UserI interface {

@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"medods/api/status"
 	"medods/internal/model"
+	"medods/pkg/helper"
 	"medods/pkg/jwt"
 	"medods/pkg/logs"
 )
@@ -44,7 +45,7 @@ func (v *Handler) MiddlewareIsUser() gin.HandlerFunc {
 func (v *Handler) MiddlewareDeviceTrack() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m model.DeviceInfo
-		m.IP = c.ClientIP()
+		m.IP = helper.ParseIP(c)
 		m.UserAgent = c.Request.UserAgent()
 
 		v.log.Debug("tracking device info", logs.Any("device_info", m))

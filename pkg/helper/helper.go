@@ -21,5 +21,10 @@ func HashPassword(password string) (string, error) {
 }
 
 func ParseIP(c *gin.Context) string {
+	if c.GetHeader("X-Real-IP") != "" {
+		return c.GetHeader("X-Real-IP")
+	} else if c.GetHeader("X-Forwarded-For") != "" {
+		return c.GetHeader("X-Forwarded-For")
+	}
 	return c.ClientIP()
 }
