@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    ports:
+      - "8095:8095"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    labels:
+      - "app=medods"
+      - "service=authentication"
+
+  postgres:
+    image: "postgres:alpine"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PWD}
+      POSTGRES_DB: ${DB_NAME}
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+    labels:
+      - "app=medods"
+      - "service=authentication-postgres"
+
+volumes:
+  postgres_data:

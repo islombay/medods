@@ -7,3 +7,5 @@ swag:
 
 run:
 	go run cmd/main.go
+
+install: swagger-install swag
