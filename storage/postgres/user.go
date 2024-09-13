@@ -38,7 +38,7 @@ func (db *userDB) Create(ctx context.Context, user *model.User) error {
 
 func (db *userDB) GetByID(ctx context.Context, id string) (*model.User, error) {
 	q := `select
-				id, first_name, last_name, hash_token,
+				id, first_name, last_name,
 				created_at, updated_at, deleted_at, email
 			from users
 			where id = $1 and deleted_at is null;`
@@ -46,7 +46,7 @@ func (db *userDB) GetByID(ctx context.Context, id string) (*model.User, error) {
 	var user model.User
 
 	if err := db.db.QueryRow(ctx, q, id).Scan(
-		&user.ID, &user.FirstName, &user.LastName, &user.HashedRefreshToken,
+		&user.ID, &user.FirstName, &user.LastName,
 		&user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Email,
 	); err != nil {
 		// TODO: handle error

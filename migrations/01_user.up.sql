@@ -6,8 +6,6 @@ create table if not exists users (
     last_name varchar(255),
     email varchar(255),
 
-    hash_token varchar(255),
-
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null,
     deleted_at timestamp default null

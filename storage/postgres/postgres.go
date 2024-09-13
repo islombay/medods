@@ -21,8 +21,9 @@ type Storage struct {
 	db  *pgxpool.Pool
 	cfg *config.ConfigDB
 
-	auth storage.AuthI
-	user storage.UserI
+	auth    storage.AuthI
+	user    storage.UserI
+	session storage.SessionI
 }
 
 func New(cfg config.ConfigDB, log logs.LoggerInterface) storage.StorageInterface {
@@ -58,8 +59,9 @@ func New(cfg config.ConfigDB, log logs.LoggerInterface) storage.StorageInterface
 		log: log,
 		cfg: &cfg,
 
-		auth: NewAuthDB(db, log),
-		user: NewUserDB(db, log),
+		auth:    NewAuthDB(db, log),
+		user:    NewUserDB(db, log),
+		session: NewSessionDB(db, log),
 	}
 }
 
@@ -69,6 +71,10 @@ func (db *Storage) Auth() storage.AuthI {
 
 func (db *Storage) User() storage.UserI {
 	return db.user
+}
+
+func (db *Storage) Session() storage.SessionI {
+	return db.session
 }
 
 func (db *Storage) Close() {

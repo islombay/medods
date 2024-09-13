@@ -5,6 +5,7 @@ import (
 	"medods/api/status"
 	"medods/internal/model"
 	"medods/pkg/jwt"
+	"medods/pkg/logs"
 )
 
 type AuthorizationHeaders struct {
@@ -45,6 +46,8 @@ func (v *Handler) MiddlewareDeviceTrack() gin.HandlerFunc {
 		var m model.DeviceInfo
 		m.IP = c.ClientIP()
 		m.UserAgent = c.Request.UserAgent()
+
+		v.log.Debug("tracking device info", logs.Any("device_info", m))
 
 		c.Set("device_info", m)
 		c.Next()

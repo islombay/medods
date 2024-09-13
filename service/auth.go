@@ -39,8 +39,18 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 
 	deviceInfo := ctx.Value("device_info").(model.DeviceInfo)
 
-	// TODO: generate access and refresh tokens
-	accessToken, refreshToken, err := jwt.GeneratePairTokens(m.UserId, deviceInfo.IP)
+	// create new session
+	session := model.Session{
+		UserID: &user.ID,
+		IP:     &deviceInfo.IP,
+	}
+	if err := srv.storage.Session().Create(ctx, &session); err != nil {
+		// TODO: handle error
+		return nil, err
+	}
+
+	// generate access and refresh tokens
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(m.UserId, deviceInfo.IP, session.ID)
 	if err != nil {
 		srv.log.Error("could not generate pair tokens", logs.Error(err))
 		return nil, err
@@ -52,14 +62,14 @@ func (srv *Auth) Login(ctx context.Context, m model.LoginRequest) (*model.TokenP
 		return nil, err
 	}
 
-	user.HashedRefreshToken = &hashedRefreshToken
+	session.Hash = &hashedRefreshToken
 
-	// TODO: save hashed token to db
-	if err := srv.storage.Auth().UpdateHash(ctx, user); err != nil {
+	// save hashed token to db
+	if err := srv.storage.Session().UpdateHash(ctx, &session); err != nil {
 		return nil, err
 	}
 
-	srv.log.Debug("new hash saved for user database")
+	srv.log.Debug("new hash saved for session database")
 
 	return &model.TokenPair{
 		AccessToken:  accessToken,
@@ -102,8 +112,14 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 		return nil, err
 	}
 
+	// TODO: get session by session_id
+	session, err := srv.storage.Session().GetByID(ctx, tokenClaims.SessionID)
+	if err != nil {
+		return nil, err
+	}
+
 	// check refresh token hash with db
-	if err := bcrypt.CompareHashAndPassword([]byte(*user.HashedRefreshToken), []byte(m.RefreshToken)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(*session.Hash), []byte(m.RefreshToken)); err != nil {
 		srv.log.Debug("trying to refresh token with invalid refresh token")
 		return nil, error_list.Unauthorized
 	}
@@ -129,7 +145,7 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 	}
 
 	// generate token pairs
-	accessToken, refreshToken, err := jwt.GeneratePairTokens(user.ID, deviceInfo.IP)
+	accessToken, refreshToken, err := jwt.GeneratePairTokens(user.ID, deviceInfo.IP, session.ID)
 	if err != nil {
 		srv.log.Error("could not generate pair tokens", logs.Error(err))
 		return nil, err
@@ -142,8 +158,8 @@ func (srv *Auth) Refresh(ctx context.Context, m model.RefreshRequest) (*model.To
 		return nil, err
 	}
 
-	user.HashedRefreshToken = &hashedRefreshToken
-	if err := srv.storage.Auth().UpdateHash(ctx, user); err != nil {
+	session.Hash = &hashedRefreshToken
+	if err := srv.storage.Session().UpdateHash(ctx, session); err != nil {
 		return nil, err
 	}
 

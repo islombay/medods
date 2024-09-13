@@ -11,13 +11,19 @@ type StorageInterface interface {
 
 	Auth() AuthI
 	User() UserI
+	Session() SessionI
 }
 
 type AuthI interface {
-	UpdateHash(ctx context.Context, user *model.User) error
 }
 
 type UserI interface {
 	Create(ctx context.Context, user *model.User) error
 	GetByID(ctx context.Context, id string) (*model.User, error)
+}
+
+type SessionI interface {
+	Create(ctx context.Context, session *model.Session) error
+	UpdateHash(ctx context.Context, session *model.Session) error
+	GetByID(ctx context.Context, id string) (*model.Session, error)
 }

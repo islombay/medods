@@ -13,11 +13,12 @@ import (
 
 type AccessTokenClaims struct {
 	jwt.RegisteredClaims
-	UserID string `json:"user_id"`
-	IP     string `json:"ip"`
+	UserID    string `json:"user_id"`
+	IP        string `json:"ip"`
+	SessionID string `json:"session_id"`
 }
 
-func Generate(userID, ip string) (string, error) {
+func Generate(userID, ip, session_id string) (string, error) {
 	// Will convert
 	expire_duration_minutes, _ := strconv.Atoi(os.Getenv("TOKEN_ACCESS_DURATION_MINUTES"))
 
@@ -27,8 +28,9 @@ func Generate(userID, ip string) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
-		UserID: userID,
-		IP:     ip,
+		UserID:    userID,
+		IP:        ip,
+		SessionID: session_id,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
@@ -71,8 +73,8 @@ func ParseToken(tokenStr string) (*AccessTokenClaims, error) {
 	return claims, nil
 }
 
-func GeneratePairTokens(userID, ip string) (string, string, error) {
-	accessToken, err := Generate(userID, ip)
+func GeneratePairTokens(userID, ip, session_id string) (string, string, error) {
+	accessToken, err := Generate(userID, ip, session_id)
 	if err != nil {
 		return "", "", err
 	}

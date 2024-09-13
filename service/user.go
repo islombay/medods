@@ -24,6 +24,5 @@ func (srv *User) GetUser(ctx context.Context, user_id string) (*model.User, erro
 	if err != nil {
 		return user, err
 	}
-	*user.HashedRefreshToken = ""
 	return user, nil
 }

@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"context"
 	"github.com/gin-gonic/gin"
 	"medods/api/status"
 	"medods/internal/model"
 	"medods/pkg/helper"
-	"time"
 )
 
 // Login
@@ -31,7 +29,8 @@ func (v *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := v.NewContext(c, 5, "device_info")
 	defer cancel()
 
 	tokenPair, err := v.service.Auth().Login(ctx, m)

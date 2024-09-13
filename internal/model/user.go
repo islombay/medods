@@ -14,7 +14,7 @@ type User struct {
 	LastName  *string `json:"last_name,omitempty"`
 	Email     *string `json:"email,omitempty"`
 
-	HashedRefreshToken *string `json:"-"`
+	//HashedRefreshToken *string `json:"-"`
 
 	At
 }
